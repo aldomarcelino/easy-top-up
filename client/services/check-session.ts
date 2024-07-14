@@ -13,7 +13,6 @@ export default function CheckSession() {
 
         if (response.status === 200) {
           setRole(response.data.user_role);
-          console.log("masuk sini");
 
           router.push("/");
         }

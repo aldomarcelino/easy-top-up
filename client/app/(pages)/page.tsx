@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import useSWR from "swr";
 import {
   Box,
@@ -13,11 +13,12 @@ import {
 } from "@mui/material";
 import { Colors } from "styles/theme/color";
 import { Pagination } from "components/elements";
-import EventModal from "components/layout/modal/event-creation-modal";
 import TimeFormatter from "utils/time-formatter";
-import VerificationModal from "components/layout/modal/verify-action-modal";
 import { EllipsisVertical } from "lucide-react";
 import CheckSession from "services/check-session";
+import { CurrencyFormatter } from "utils/crrency-formatter";
+import { allBank } from "../../constants";
+import { useSearchParams } from "next/navigation";
 
 interface ListHead {
   id: number;
@@ -34,13 +35,11 @@ interface dataType {
 }
 
 const Dashboard: React.FC = () => {
-  const { role } = CheckSession();
+  CheckSession();
   // Initialize State
   const [currentPage, setCurrentPage] = useState(1);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showVerifyModal, setShowVerifyModal] = useState(false);
-  const [actionType, setActionType] = useState("");
-  const [currentId, setCurrentId] = useState("");
+  const searchParams = useSearchParams();
+  const search = searchParams.get("runNum");
 
   const listHead: ListHead[] = [
     {
@@ -61,7 +60,7 @@ const Dashboard: React.FC = () => {
     {
       id: 4,
       title: "Method",
-      align: "left",
+      align: "center",
     },
     {
       id: 5,
@@ -76,61 +75,13 @@ const Dashboard: React.FC = () => {
   ];
 
   // Fetch Data
-  const { data, mutate } = useSWR(() => "/api/history");
+  const { data, mutate } = useSWR(() => `/api/history?page=${currentPage}`);
 
-  // Handle show button
-  const handleShowButton = (type: string, id: string) => {
-    let bgColor = Colors.gery100;
-    const value = type.toLocaleLowerCase();
-    switch (value) {
-      case "reject":
-        bgColor = Colors.red100;
-        break;
-
-      case "approve":
-        bgColor = Colors.green100;
-        break;
-
-      default:
-        bgColor = Colors.gery100;
-        break;
+  useEffect(() => {
+    if (search) {
+      mutate();
     }
-
-    return (
-      <Box
-        display="flex"
-        padding="8px"
-        justifyContent="center"
-        borderRadius="9px"
-        width="100%"
-        sx={{
-          backgroundColor: bgColor,
-          color: Colors.white,
-          cursor: "pointer",
-          "&:hover": {
-            opacity: 0.9,
-          },
-        }}
-        onClick={() => {
-          setShowVerifyModal(true);
-          setActionType(type);
-          setCurrentId(id);
-        }}
-      >
-        {type}
-      </Box>
-    );
-  };
-
-  const handleShowStatus = (status: string) => {
-    let color = Colors.green100;
-    if (status === "Rejected") color = Colors.red100;
-    return (
-      <Typography variant="body2" color={color} textAlign="center">
-        {status}
-      </Typography>
-    );
-  };
+  }, [search]);
 
   return (
     <>
@@ -157,7 +108,7 @@ const Dashboard: React.FC = () => {
           <TableBody>
             {!data ? (
               <>
-                {[...Array(5)].map((_, id) => (
+                {[...Array(7)].map((_, id) => (
                   <TableRow
                     key={`${id}-TableRow`}
                     sx={{
@@ -207,6 +158,7 @@ const Dashboard: React.FC = () => {
                       "& td, & th": {
                         border: 0,
                         overflow: "hidden",
+                        paddingY: "3px",
                       },
                     }}
                   >
@@ -220,10 +172,33 @@ const Dashboard: React.FC = () => {
                     >
                       {TimeFormatter(row.createdAt)}
                     </TableCell>
-                    <TableCell align="left">{row.amount}</TableCell>
+                    <TableCell align="left" sx={{ fontWeight: 600 }}>
+                      {CurrencyFormatter(row.amount || 0)}
+                    </TableCell>
                     <TableCell align="left">{row.note}</TableCell>
-                    <TableCell align="left">{row.method}</TableCell>
-                    <TableCell align="left">{row.method}</TableCell>
+                    <TableCell align="left">
+                      <Box
+                        border={`1px solid ${Colors.blue}`}
+                        textAlign="center"
+                        paddingY="3px"
+                        borderRadius="7px"
+                        color={Colors.blue}
+                      >
+                        {allBank[row.method]?.name}
+                      </Box>
+                    </TableCell>
+                    <TableCell align="right">
+                      <img
+                        alt={row.method}
+                        src={allBank[row.method]?.icon || ""}
+                        style={{
+                          background: Colors.white,
+                          height: "48px",
+                          width: "48px",
+                          objectFit: "contain",
+                        }}
+                      />
+                    </TableCell>
                     <TableCell
                       align="right"
                       sx={{
@@ -241,35 +216,19 @@ const Dashboard: React.FC = () => {
         </Table>
 
         {/* START - Pagination */}
-        {data?.history.length && (
+        {data?.history.length ? (
           <Box display="flex" justifyContent="end" margin="32px 0px 48px">
             <Pagination
               currentPage={currentPage}
               setCurrentPage={setCurrentPage}
-              pageLimit={Math.ceil(data.count / 10)}
+              pageLimit={Math.ceil(data.count / 7)}
             />
           </Box>
+        ) : (
+          ""
         )}
         {/* END - Pagination */}
       </Box>
-
-      {/* START - Event Modal Creation */}
-      <EventModal
-        open={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        refetch={mutate}
-      />
-      {/* END - Event Modal Creation */}
-
-      {/* START - Verification Modal */}
-      <VerificationModal
-        open={showVerifyModal}
-        onClose={() => setShowVerifyModal(false)}
-        currentId={currentId}
-        actionType={actionType}
-        refetch={mutate}
-      />
-      {/* END -Verification Modal */}
     </>
   );
 };

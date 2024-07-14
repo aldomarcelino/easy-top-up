@@ -2,12 +2,37 @@ import React, { useEffect, useState } from "react";
 import styled from "@emotion/styled";
 import { TextField, Typography } from "@mui/material";
 import { Colors } from "styles/theme/color";
+import { NumericFormat, NumericFormatProps } from "react-number-format";
 
 interface TextFieldProps {
   width: string;
   padding: string;
   endadornment: React.ReactNode;
   startadornment: React.ReactNode;
+}
+
+interface NumberFormatCustomProps extends NumericFormatProps {
+  onChange: (event: { target: { name: string; value: string } }) => void;
+  name?: string;
+}
+
+interface CustomTextFieldProps {
+  type?: string;
+  label?: string;
+  placeholder?: string;
+  disabled?: boolean;
+  errors?: boolean;
+  width?: string;
+  padding?: string;
+  endAdornment?: React.ReactNode;
+  startAdornment?: React.ReactNode;
+  handleChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onClick?: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
+  onBlur?: (event: React.FocusEvent<HTMLInputElement>) => void;
+  maxLength?: number;
+  value?: any;
+  name?: string;
+  currency?: boolean;
 }
 
 const Component = React.memo(
@@ -119,24 +144,31 @@ const Component = React.memo(
   )
 );
 
-interface CustomTextFieldProps {
-  type?: string;
-  label?: string;
-  placeholder?: string;
-  disabled?: boolean;
-  errors?: boolean;
-  width?: string;
-  padding?: string;
-  endAdornment?: React.ReactNode;
-  startAdornment?: React.ReactNode;
-  handleChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onClick?: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
-  onBlur?: (event: React.FocusEvent<HTMLInputElement>) => void;
-  maxLength?: number;
-  value?: any;
-  name?: string;
-}
+const NumberFormatCustom = React.forwardRef<
+  typeof NumericFormat,
+  NumberFormatCustomProps
+>((props, ref) => {
+  const { onChange, name = "", ...other } = props;
 
+  return (
+    <NumericFormat
+      {...other}
+      getInputRef={ref}
+      onValueChange={(values) => {
+        onChange({
+          target: {
+            name,
+            value: values.value,
+          },
+        });
+      }}
+      thousandSeparator="."
+      decimalSeparator=","
+      valueIsNumericString
+      prefix="Rp "
+    />
+  );
+});
 const CustomTextField: React.FC<CustomTextFieldProps> = ({
   type = "text",
   label,
@@ -153,6 +185,7 @@ const CustomTextField: React.FC<CustomTextFieldProps> = ({
   maxLength,
   value,
   name,
+  currency,
 }) => {
   return (
     <>
@@ -176,6 +209,7 @@ const CustomTextField: React.FC<CustomTextFieldProps> = ({
         InputProps={{
           endAdornment,
           startAdornment,
+          inputComponent: currency ? (NumberFormatCustom as any) : undefined,
         }}
         width={width}
         padding={padding}

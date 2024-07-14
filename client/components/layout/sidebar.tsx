@@ -5,15 +5,19 @@ import { Image } from "components/elements";
 import {
   CircleDollarSign,
   Cog,
+  Plus,
   Power,
   ScanLine,
   SquareStack,
 } from "lucide-react";
 import styled from "@emotion/styled";
 import useSWR from "swr";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import TopupModal from "./modal/event-creation-modal";
 import { CurrencyFormatter, formatNumber } from "utils/crrency-formatter";
+import { useRouter } from "next/navigation";
+import axios from "axios";
+import { getLocalStorage, removeLocalStorage } from "utils/local-storage";
 
 const SidebarItem = styled(Box)`
   margin-top: 9px;
@@ -31,11 +35,38 @@ const SidebarItem = styled(Box)`
 `;
 
 const Sidebar = () => {
+  const router = useRouter();
   // Initialize State
   const [showTopupModal, setShowTopupModal] = useState(false);
+  const [userName, setUserName] = useState<string | undefined | null>("");
 
   // Fetch Data
   const { data, mutate } = useSWR(() => "/api/history/total-amount");
+
+  const handleLogOut = async () => {
+    const response = await axios.post(
+      "/api/auth/logout",
+      {},
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+    if (response.status === 200) {
+      router.push("/login");
+      removeLocalStorage("user_name");
+    }
+  };
+
+  useEffect(() => {
+    const getName = async () => {
+      const name = await getLocalStorage("user_name");
+      setUserName(name);
+    };
+
+    getName();
+  }, []);
 
   return (
     <>
@@ -65,15 +96,24 @@ const Sidebar = () => {
             objectFit="cover"
             overflow="hidden"
           />
-          <Typography
-            fontSize={18}
-            fontWeight={700}
-            whiteSpace="nowrap"
-            overflow="hidden"
-            textOverflow="ellipsis"
-          >
-            Aldo Marcelino.
-          </Typography>
+          {userName ? (
+            <Typography
+              fontSize={18}
+              fontWeight={700}
+              whiteSpace="nowrap"
+              overflow="hidden"
+              textOverflow="ellipsis"
+            >
+              {userName}
+            </Typography>
+          ) : (
+            <Skeleton
+              variant="rectangular"
+              height="32px"
+              width="60%"
+              sx={{ marginRight: "24px" }}
+            />
+          )}
         </Box>
         <Box
           display="flex"
@@ -92,14 +132,21 @@ const Sidebar = () => {
             justifyContent="space-between"
           >
             <Typography fontSize={29} fontWeight={600} color={Colors.darkBlue}>
-              {data.totalAmount > 99000000
+              {data.totalAmount == 0
+                ? "Rp 0"
+                : data.totalAmount > 99000000
                 ? formatNumber(data?.totalAmount)
                 : CurrencyFormatter(data?.totalAmount)}
             </Typography>
-            <ScanLine
-              style={{ marginRight: "18px", cursor: "pointer" }}
+            <Box
+              position="relative"
+              marginRight="18px"
+              sx={{ cursor: "pointer" }}
               onClick={() => setShowTopupModal(true)}
-            />
+            >
+              <ScanLine />
+              <Plus style={{ position: "absolute", top: 0, left: 0 }} />
+            </Box>
           </Box>
         ) : (
           <Skeleton
@@ -151,6 +198,7 @@ const Sidebar = () => {
                 color: Colors.red100,
               },
             }}
+            onClick={handleLogOut}
           >
             <Power />
             <Typography>Log Out</Typography>
@@ -159,7 +207,6 @@ const Sidebar = () => {
       </Box>
 
       {/* Top Up Modal */}
-
       <TopupModal
         open={showTopupModal}
         refetch={mutate}

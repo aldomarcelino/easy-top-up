@@ -8,7 +8,8 @@ export const setLocalStorage = (key: string, value: ValueType): void => {
 
 export const getLocalStorage = (key: string): string | null => {
   if (typeof window !== "undefined") {
-    return localStorage.getItem(key);
+    const storedItem = localStorage.getItem(key);
+    return JSON.parse(storedItem || "");
   }
   return null;
 };

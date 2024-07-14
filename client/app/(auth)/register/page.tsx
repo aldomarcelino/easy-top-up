@@ -7,6 +7,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Colors } from "styles/theme/color";
+import { setLocalStorage } from "utils/local-storage";
 import { password, phoneNumber } from "utils/validation-form";
 
 const initialForm = {
@@ -61,6 +62,7 @@ const RegisterPage = () => {
       });
       if (response.status) {
         router.push("/");
+        setLocalStorage("user_name", response.data.name);
       }
 
       setLoading(false);

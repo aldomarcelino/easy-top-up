@@ -15,8 +15,6 @@ export async function POST(request: NextRequest) {
     sameSite: "strict",
   };
 
-  console.log("masih lewat");
-
   try {
     const response = await axios.post(
       `${process.env.NEXT_PUBLIC_RESTURL_API_SERVER}/auth/signup`,
@@ -26,7 +24,10 @@ export async function POST(request: NextRequest) {
 
     // Save the session in a cookie
     cookies().set("session", response.data.token, options);
-    return NextResponse.json({ message: "success" }, { status: 200 });
+    return NextResponse.json(
+      { message: "success", name: response.data.name },
+      { status: 200 }
+    );
   } catch (e: any) {
     return NextResponse.json(
       {

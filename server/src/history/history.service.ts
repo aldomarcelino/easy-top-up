@@ -16,7 +16,8 @@ export class HistoryService {
     query: Query,
     user: User,
   ): Promise<{ history: History[]; count: number }> {
-    const resPerPage = 10;
+    const resPerPage = 7;
+
     const currentPage = Number(query.page) || 1;
     const skip = resPerPage * (currentPage - 1);
 
@@ -31,10 +32,13 @@ export class HistoryService {
 
     const userFilter = { user: user.id };
 
-    const history = await this.historyModel
+    const historyQuery = this.historyModel
       .find({ ...keyword, ...userFilter })
+      .sort({ createdAt: -1 })
       .limit(resPerPage)
       .skip(skip);
+
+    const history = await historyQuery.exec();
 
     const count = await this.historyModel.countDocuments({
       ...keyword,

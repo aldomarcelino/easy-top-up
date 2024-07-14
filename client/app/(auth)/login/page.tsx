@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import CheckSession from "services/check-session";
 import { Colors } from "styles/theme/color";
+import { setLocalStorage } from "utils/local-storage";
 
 const LoginPage = () => {
   const router = useRouter();
@@ -42,6 +43,7 @@ const LoginPage = () => {
       });
       if (response.status) {
         router.push("/");
+        setLocalStorage("user_name", response.data.name);
       }
 
       setLoading(false);

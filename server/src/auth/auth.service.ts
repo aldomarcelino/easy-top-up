@@ -20,7 +20,7 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async signUp(signUpDto: SignUpDto): Promise<{ token: string }> {
+  async signUp(signUpDto: SignUpDto): Promise<{ token: string; name: string }> {
     const { name, email, password, phone } = signUpDto;
 
     // Check if email already exists
@@ -44,10 +44,10 @@ export class AuthService {
     });
 
     const token = this.jwtService.sign({ id: user._id });
-    return { token };
+    return { token, name };
   }
 
-  async login(loginDto: LoginDto): Promise<{ token: string }> {
+  async login(loginDto: LoginDto): Promise<{ token: string; name: string }> {
     const { email, password } = loginDto;
 
     const user = await this.userModel.findOne({ email });
@@ -64,6 +64,6 @@ export class AuthService {
 
     const token = this.jwtService.sign({ id: user._id });
 
-    return { token };
+    return { token, name: user.name };
   }
 }

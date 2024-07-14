@@ -5,8 +5,8 @@ import { Button, Select, TextField } from "components/elements";
 import { Colors } from "styles/theme/color";
 import axios from "axios";
 import { HandCoins } from "lucide-react";
-import { formatNumber } from "utils/crrency-formatter";
 import { paymentMethod } from "../../../constants";
+import { useRouter } from "next/navigation";
 
 interface TopupProps {
   open: boolean;
@@ -37,10 +37,10 @@ const initialForm = {
 };
 
 const TopupModal: React.FC<TopupProps> = ({ open, onClose, refetch }) => {
+  const router = useRouter();
   // Initialize State
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [curIdx, setCurIdx] = useState<string | null | undefined | number>();
   const [form, setForm] = useState(initialForm);
 
   // Event on change handler
@@ -61,16 +61,30 @@ const TopupModal: React.FC<TopupProps> = ({ open, onClose, refetch }) => {
   // Handle create event form
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    // validate
+    if (+form.amount <= 0) {
+      setError("Amount must be greather than 0");
+      return;
+    }
+    if (!form.method) {
+      setError("Payment Method is Required");
+      return;
+    }
+    if (!form.bank) {
+      setError("Bank is required.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     try {
       const formData = {
         method: form.bank,
-        note: form.note,
-        amount: form.amount,
+        note: form.note || "-",
+        amount: +form.amount,
       };
 
-      const response = await axios.post("/api/events/create", formData, {
+      const response = await axios.post("/api/history/create", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -79,11 +93,21 @@ const TopupModal: React.FC<TopupProps> = ({ open, onClose, refetch }) => {
         setLoading(false);
         refetch();
         handleCancel();
+        router.replace(`?runNum=${Math.random()}`);
       }
     } catch (e: any) {
       setLoading(false);
       setError(e.response && e.response.data && e.response.data.message);
     }
+  };
+
+  // Hanlde list bank
+  const handleBanks = (status?: string) => {
+    if (status) {
+      const temp = paymentMethod.find((val: any) => val.name === status);
+      return temp?.data;
+    }
+    return null;
   };
 
   return (
@@ -106,16 +130,13 @@ const TopupModal: React.FC<TopupProps> = ({ open, onClose, refetch }) => {
         <form onSubmit={handleSubmit}>
           <TextField
             label="Amount"
-            type="number"
             name="amount"
             value={form.amount}
             handleChange={handleChange}
-            placeholder="1000000"
+            placeholder="Rp 1.000.000"
             width="100%"
+            currency
           />
-          {form.amount > 0 && (
-            <Typography>{formatNumber(form.amount)}</Typography>
-          )}
 
           <Grid container style={{ marginTop: "24px" }}>
             <Grid item md={6} paddingRight="5px">
@@ -125,12 +146,11 @@ const TopupModal: React.FC<TopupProps> = ({ open, onClose, refetch }) => {
                 label="Payment Method"
                 handleChange={(e) => {
                   setForm({ ...form, method: e.target.value });
-                  setCurIdx(+e.target.value - 1);
                 }}
                 placeholder="Select payment method"
                 data={paymentMethod}
                 loading={false}
-                returnValue="id"
+                returnValue="name"
               />
             </Grid>
             <Grid item md={6} paddingLeft="5px">
@@ -140,8 +160,8 @@ const TopupModal: React.FC<TopupProps> = ({ open, onClose, refetch }) => {
                 label="Bank"
                 handleChange={(e) => setForm({ ...form, bank: e.target.value })}
                 placeholder="Select service/Bank"
-                data={paymentMethod[curIdx || 0]?.data}
-                loading={false}
+                data={handleBanks(form.method)}
+                loading={!handleBanks(form.method)}
                 returnValue="id"
               />
             </Grid>
